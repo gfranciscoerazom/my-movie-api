@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Body
 from fastapi.responses import HTMLResponse
 
 app = FastAPI()
@@ -62,3 +62,25 @@ def get_movies_by_category(category: str = "All", year: int = None):
         return_movies = list(filter(lambda movie: int(movie['year']) == year, return_movies))
 
     return return_movies
+
+@app.post("/movies", tags=["Movies"])
+def post_movie(
+    id: int = Body(),
+    title: str = Body(),
+    overview: str = Body(),
+    year: str = Body(),
+    rating: float = Body(),
+    category: str = Body()
+):
+    new_movie = {
+        'id': id,
+        'title': title,
+        'overview': overview,
+        'year': year,
+        'rating': rating,
+        'category': category
+    }
+
+    movies.append(new_movie)
+
+    return new_movie
