@@ -13,6 +13,14 @@ movies = [
         'year': '2009',
         'rating': 7.8,
         'category': 'Acción'    
+    },
+    {
+        'id': 2,
+        'title': 'Avatar',
+        'overview': "En un exuberante planeta llamado Pandora viven los Na'vi, seres que ...",
+        'year': '2009',
+        'rating': 7.8,
+        'category': 'Acción'    
     } 
 ]
 
@@ -33,3 +41,12 @@ def home():
 @app.get("/movies", tags=["Movies"])
 def get_movies():
     return movies
+
+@app.get("/movies/{movie_id}", tags=["Movies"])
+def get_movie(movie_id: int):
+    # return list(filter(lambda movie: movie['id'] == movie_id, movies))
+    for movie in movies:
+        if movie['id'] == movie_id:
+            return movie
+        
+    return None
