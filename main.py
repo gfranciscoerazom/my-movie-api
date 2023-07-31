@@ -50,3 +50,15 @@ def get_movie(movie_id: int):
             return movie
         
     return None
+
+@app.get("/movies/", tags=["Movies"])
+def get_movies_by_category(category: str = "All", year: int = None):
+    return_movies = movies
+
+    if category != "All":
+        return_movies = list(filter(lambda movie: movie['category'] == category, return_movies))
+
+    if year != None:
+        return_movies = list(filter(lambda movie: int(movie['year']) == year, return_movies))
+
+    return return_movies
