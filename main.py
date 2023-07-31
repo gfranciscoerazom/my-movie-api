@@ -84,3 +84,24 @@ def post_movie(
     movies.append(new_movie)
 
     return new_movie
+
+@app.put("/movies/{movie_id}", tags=["Movies"])
+def put_movie(
+    movie_id: int,
+    title: str = Body(),
+    overview: str = Body(),
+    year: str = Body(),
+    rating: float = Body(),
+    category: str = Body()
+):
+    for movie in movies:
+        if movie['id'] == movie_id:
+            movie['title'] = title
+            movie['overview'] = overview
+            movie['year'] = year
+            movie['rating'] = rating
+            movie['category'] = category
+
+            return movie
+        
+    return None
