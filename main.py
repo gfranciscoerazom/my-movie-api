@@ -105,3 +105,12 @@ def put_movie(
             return movie
         
     return None
+
+@app.delete("/movies/{movie_id}", tags=["Movies"])
+def delete_movie(movie_id: int):
+    for movie in movies:
+        if movie['id'] == movie_id:
+            movies.remove(movie)
+            return movie
+        
+    return None
