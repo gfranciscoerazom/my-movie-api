@@ -1,5 +1,6 @@
 from fastapi import FastAPI, Body
 from fastapi.responses import HTMLResponse
+from models.Movie import Movie
 
 app = FastAPI()
 app.title = "My First API with FastAPI"
@@ -12,22 +13,23 @@ app.contact = {
 }
 
 movies = [
-    {
-        'id': 1,
-        'title': 'Avatar',
-        'overview': "En un exuberante planeta llamado Pandora viven los Na'vi, seres que ...",
-        'year': '2009',
-        'rating': 7.8,
-        'category': 'Acción'    
-    },
-    {
-        'id': 2,
-        'title': 'Avatar',
-        'overview': "En un exuberante planeta llamado Pandora viven los Na'vi, seres que ...",
-        'year': '2009',
-        'rating': 7.8,
-        'category': 'Acción'    
-    } 
+    Movie(
+        id          = 1,
+        title       = "Avatar",
+        overview    = "En un exuberante planeta llamado Pandora viven los Na'vi, seres que ...",
+        year        = 2009,
+        rating      = 7.8,
+        category    = "Acción"
+    ),
+    Movie(
+        id          = 2,
+        title       = "Avatar",
+        overview    = "En un exuberante planeta llamado Pandora viven los Na'vi, seres que ...",
+        year        = 2009,
+        rating      = 7.8,
+        category    = "Acción"
+    ),
+
 ]
 
 @app.get("/", tags=["Home"])
@@ -74,7 +76,7 @@ def get_movie(movie_id: int):
         dict: The movie with the given ID, or None if no movie was found.
     """
     for movie in movies:
-        if movie['id'] == movie_id:
+        if movie.id == movie_id:
             return movie
         
     return None
@@ -95,23 +97,16 @@ def get_movies_by_category(category: str = "All", year: int = None):
     return_movies = movies
 
     if category != "All":
-        return_movies = list(filter(lambda movie: movie['category'] == category, return_movies))
+        return_movies = list(filter(lambda movie: movie.category == category, return_movies))
 
     if year != None:
-        return_movies = list(filter(lambda movie: int(movie['year']) == year, return_movies))
+        return_movies = list(filter(lambda movie: movie.year == year, return_movies))
 
     return return_movies
 
 
 @app.post("/movies", tags=["Movies"])
-def post_movie(
-    id: int = Body(),
-    title: str = Body(),
-    overview: str = Body(),
-    year: str = Body(),
-    rating: float = Body(),
-    category: str = Body()
-):
+def post_movie(movie: Movie):
     """
     Creates a new movie with the given parameters and adds it to the list of movies.
 
@@ -126,29 +121,13 @@ def post_movie(
     Returns:
         dict: A dictionary containing the details of the newly created movie.
     """
-    new_movie = {
-        'id': id,
-        'title': title,
-        'overview': overview,
-        'year': year,
-        'rating': rating,
-        'category': category
-    }
+    movies.append(movie)
 
-    movies.append(new_movie)
-
-    return new_movie
+    return movie
 
 
 @app.put("/movies/{movie_id}", tags=["Movies"])
-def put_movie(
-    movie_id: int,
-    title: str = Body(),
-    overview: str = Body(),
-    year: str = Body(),
-    rating: float = Body(),
-    category: str = Body()
-):
+def put_movie(movie_id: int, movie: Movie):
     """
     Updates the movie with the given ID with the provided information.
 
@@ -164,17 +143,15 @@ def put_movie(
         dict: The updated movie information.
         None: If no movie with the given ID was found.
     """
-    for movie in movies:
-        if movie['id'] == movie_id:
-            movie['title'] = title
-            movie['overview'] = overview
-            movie['year'] = year
-            movie['rating'] = rating
-            movie['category'] = category
+    for m in movies:
+        if m.id == movie_id:
+            m.title = movie.title
+            m.overview = movie.overview
+            m.year = movie.year
+            m.rating = movie.rating
+            m.category = movie.category
 
             return movie
-        
-    return None
 
 
 @app.delete("/movies/{movie_id}", tags=["Movies"])
@@ -189,8 +166,6 @@ def delete_movie(movie_id: int):
         dict or None: The deleted movie as a dictionary, or None if the movie was not found.
     """
     for movie in movies:
-        if movie['id'] == movie_id:
+        if movie.id == movie_id:
             movies.remove(movie)
             return movie
-        
-    return None
