@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Body
+from fastapi import FastAPI, Path, Query
 from fastapi.responses import HTMLResponse
 from models.Movie import Movie
 
@@ -65,7 +65,11 @@ def get_movies():
 
 
 @app.get("/movies/{movie_id}", tags=["Movies"])
-def get_movie(movie_id: int):
+def get_movie(
+    movie_id: int = Path(
+        ge=1,
+    )
+):
     """
     Returns the movie with the given ID from the list of movies.
 
@@ -83,7 +87,18 @@ def get_movie(movie_id: int):
 
 
 @app.get("/movies/", tags=["Movies"])
-def get_movies_by_category(category: str = "All", year: int = None):
+def get_movies_by_category(
+    category: str = Query(
+        default="All",
+        min_length=1,
+        max_length=20,
+    ),
+    year: int = Query(
+        default=None,
+        ge=1900,
+        le=2100,
+    ),
+):
     """
     Returns a list of movies filtered by category and/or year.
 
