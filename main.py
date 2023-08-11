@@ -4,6 +4,12 @@ from fastapi.responses import HTMLResponse
 app = FastAPI()
 app.title = "My First API with FastAPI"
 app.version = "v0.0.1"
+app.description = "This is my first API with FastAPI. This is a simple API to manage movies. It is for the Platzi FastAPI course."
+app.contact = {
+    'name': 'Gabriel Erazo',
+    'url': "https://www.linkedin.com/in/gfranciscoerazom/",
+    'email': 'gfranciscoerazom@protonmail.com',
+}
 
 movies = [
     {
@@ -33,7 +39,7 @@ def home():
             </head>
             <body>
                 <h1>Welcome to my API</h1>
-                <p>Try to go to <a href="/docs">/docs</a></p>
+                <p>See the docs at <a href="/docs">/docs</a> and <a href="/redoc">/redoc</a></p>
             </body>
         </html>
     """)
