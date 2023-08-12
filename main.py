@@ -1,5 +1,5 @@
 from fastapi import FastAPI, Path, Query
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from models.Movie import Movie
 
 app = FastAPI()
@@ -23,13 +23,12 @@ movies = [
     ),
     Movie(
         id          = 2,
-        title       = "Avatar",
-        overview    = "En un exuberante planeta llamado Pandora viven los Na'vi, seres que ...",
-        year        = 2009,
-        rating      = 7.8,
-        category    = "Acción"
+        title       = "Matrix",
+        overview    = "Un pirata informático recibe una misteriosa visita: alguien ha ...",
+        year        = 1999,
+        rating      = 8.7,
+        category    = "Ciencia Ficción"
     ),
-
 ]
 
 @app.get("/", tags=["Home"])
@@ -53,23 +52,35 @@ def home():
     """)
 
 
-@app.get("/movies", tags=["Movies"])
-def get_movies():
+@app.get(
+    path            = "/movies",
+    tags            = ["Movies"],
+    response_model  = list[Movie],
+    status_code     = 200,
+)
+def get_movies() -> list[Movie]:
     """
     Returns a list of all movies in the database.
 
     Returns:
         list: A list of all movies in the database.
     """    
-    return movies
+    return JSONResponse(
+        content = [movie.model_dump() for movie in movies]
+    )
 
 
-@app.get("/movies/{movie_id}", tags=["Movies"])
+@app.get(
+    "/movies/{movie_id}",
+    tags=["Movies"],
+    response_model=Movie,
+    status_code=200,
+)
 def get_movie(
     movie_id: int = Path(
         ge=1,
     )
-):
+) -> Movie:
     """
     Returns the movie with the given ID from the list of movies.
 
@@ -81,12 +92,17 @@ def get_movie(
     """
     for movie in movies:
         if movie.id == movie_id:
-            return movie
-        
-    return None
+            return JSONResponse(
+                content = movie.model_dump()
+            )
 
 
-@app.get("/movies/", tags=["Movies"])
+@app.get(
+    "/movies/",
+    tags=["Movies"],
+    response_model=list[Movie],
+    status_code=200,
+)
 def get_movies_by_category(
     category: str = Query(
         default="All",
@@ -98,7 +114,7 @@ def get_movies_by_category(
         ge=1900,
         le=2100,
     ),
-):
+) -> list[Movie]:
     """
     Returns a list of movies filtered by category and/or year.
 
@@ -117,11 +133,18 @@ def get_movies_by_category(
     if year != None:
         return_movies = list(filter(lambda movie: movie.year == year, return_movies))
 
-    return return_movies
+    return JSONResponse(
+        content = list(map(lambda movie: movie.model_dump(), return_movies))
+    )
 
 
-@app.post("/movies", tags=["Movies"])
-def post_movie(movie: Movie):
+@app.post(
+    "/movies",
+    tags=["Movies"],
+    response_model=dict,
+    status_code=201,
+)
+def post_movie(movie: Movie) -> dict:
     """
     Creates a new movie with the given parameters and adds it to the list of movies.
 
@@ -138,11 +161,21 @@ def post_movie(movie: Movie):
     """
     movies.append(movie)
 
-    return movie
+    return JSONResponse(
+        content = {
+            "message": "Movie created successfully.",
+            "movie": movie.model_dump(),
+        }
+    )
 
 
-@app.put("/movies/{movie_id}", tags=["Movies"])
-def put_movie(movie_id: int, movie: Movie):
+@app.put(
+    "/movies/{movie_id}",
+    tags=["Movies"],
+    response_model=dict,
+    status_code=200,
+)
+def put_movie(movie_id: int, movie: Movie) -> dict:
     """
     Updates the movie with the given ID with the provided information.
 
@@ -166,11 +199,21 @@ def put_movie(movie_id: int, movie: Movie):
             m.rating = movie.rating
             m.category = movie.category
 
-            return movie
+            return JSONResponse(
+                content = {
+                    "message": "Movie updated successfully.",
+                    "movie": m.model_dump(),
+                }
+            )
 
 
-@app.delete("/movies/{movie_id}", tags=["Movies"])
-def delete_movie(movie_id: int):
+@app.delete(
+    "/movies/{movie_id}",
+    tags=["Movies"],
+    response_model=dict,
+    status_code=200,
+)
+def delete_movie(movie_id: int) -> dict:
     """
     Deletes a movie from the list of movies by its ID.
 
@@ -183,4 +226,9 @@ def delete_movie(movie_id: int):
     for movie in movies:
         if movie.id == movie_id:
             movies.remove(movie)
-            return movie
+            return JSONResponse(
+                content = {
+                    "message": "Movie deleted successfully.",
+                    "movie": movie.model_dump(),
+                }
+            )
