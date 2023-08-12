@@ -1,6 +1,9 @@
-from fastapi import FastAPI, Path, Query
+from fastapi import Depends, FastAPI, Path, Query
 from fastapi.responses import HTMLResponse, JSONResponse
+from key.JWTBearer import JWTBearer
+from key.jwt_manager import create_access_token
 from models.Movie import Movie
+from models.User import User
 
 app = FastAPI()
 app.title = "My First API with FastAPI"
@@ -52,11 +55,29 @@ def home():
     """)
 
 
+@app.post(
+    path            = "/login",
+    tags            = ["Login"],
+    response_model  = dict,
+    status_code     = 200,
+)
+def login(user: User) -> dict:
+    if user.email == "admin@mail.com" and user.password == "admin":
+        token: str = create_access_token(user.model_dump())
+        return JSONResponse(
+            content = {
+                "message": "User logged in successfully.",
+                "token": token,
+            }
+        )
+
+
 @app.get(
     path            = "/movies",
     tags            = ["Movies"],
     response_model  = list[Movie],
     status_code     = 200,
+    dependencies    = [Depends(JWTBearer())]
 )
 def get_movies() -> list[Movie]:
     """
