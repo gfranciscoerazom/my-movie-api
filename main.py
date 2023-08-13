@@ -2,8 +2,10 @@ from fastapi import Depends, FastAPI, Path, Query
 from fastapi.responses import HTMLResponse, JSONResponse
 from key.JWTBearer import JWTBearer
 from key.jwt_manager import create_access_token
-from models.Movie import Movie
+from models.Movie import Movie, BaseMovie
 from models.User import User
+from config.database import Session, engine, Base
+from fastapi.encoders import jsonable_encoder
 
 app = FastAPI()
 app.title = "My First API with FastAPI"
@@ -14,6 +16,8 @@ app.contact = {
     'url': "https://www.linkedin.com/in/gfranciscoerazom/",
     'email': 'gfranciscoerazom@protonmail.com',
 }
+
+Base.metadata.create_all(bind=engine)
 
 movies = [
     Movie(
@@ -85,9 +89,11 @@ def get_movies() -> list[Movie]:
 
     Returns:
         list: A list of all movies in the database.
-    """    
+    """
+    db = Session()
+    movies = db.query(BaseMovie).all()
     return JSONResponse(
-        content = [movie.model_dump() for movie in movies]
+        content = jsonable_encoder(movies)
     )
 
 
@@ -98,9 +104,7 @@ def get_movies() -> list[Movie]:
     status_code=200,
 )
 def get_movie(
-    movie_id: int = Path(
-        ge=1,
-    )
+    movie_id: int = Path(ge=1)
 ) -> Movie:
     """
     Returns the movie with the given ID from the list of movies.
@@ -111,11 +115,21 @@ def get_movie(
     Returns:
         dict: The movie with the given ID, or None if no movie was found.
     """
-    for movie in movies:
-        if movie.id == movie_id:
-            return JSONResponse(
-                content = movie.model_dump()
-            )
+    db = Session()
+    movies = db.query(BaseMovie).filter(BaseMovie.id == movie_id).first()
+
+    if not movies:
+        return JSONResponse(
+            content = {
+                "error": "Movie not found."
+            },
+            status_code = 404
+        )
+
+    return JSONResponse(
+        content = jsonable_encoder(movies),
+        status_code=200,
+    )
 
 
 @app.get(
@@ -146,7 +160,9 @@ def get_movies_by_category(
     Returns:
         list: A list of movies filtered by category and/or year.
     """
-    return_movies = movies
+    db = Session()
+
+    return_movies = db.query(BaseMovie).all()
 
     if category != "All":
         return_movies = list(filter(lambda movie: movie.category == category, return_movies))
@@ -155,7 +171,7 @@ def get_movies_by_category(
         return_movies = list(filter(lambda movie: movie.year == year, return_movies))
 
     return JSONResponse(
-        content = list(map(lambda movie: movie.model_dump(), return_movies))
+        content = jsonable_encoder(return_movies),
     )
 
 
@@ -180,12 +196,16 @@ def post_movie(movie: Movie) -> dict:
     Returns:
         dict: A dictionary containing the details of the newly created movie.
     """
-    movies.append(movie)
+    db = Session()
+    new_movie = BaseMovie(**movie.model_dump())
+    db.add(new_movie)
+    db.commit()
+    db.refresh(new_movie)
 
     return JSONResponse(
         content = {
             "message": "Movie created successfully.",
-            "movie": movie.model_dump(),
+            "movie": jsonable_encoder(new_movie),
         }
     )
 
@@ -212,20 +232,31 @@ def put_movie(movie_id: int, movie: Movie) -> dict:
         dict: The updated movie information.
         None: If no movie with the given ID was found.
     """
-    for m in movies:
-        if m.id == movie_id:
-            m.title = movie.title
-            m.overview = movie.overview
-            m.year = movie.year
-            m.rating = movie.rating
-            m.category = movie.category
+    db = Session()
+    movies = db.query(BaseMovie).filter(BaseMovie.id == movie_id).first()
 
-            return JSONResponse(
-                content = {
-                    "message": "Movie updated successfully.",
-                    "movie": m.model_dump(),
-                }
-            )
+    if not movies:
+        return JSONResponse(
+            content = {
+                "error": "Movie not found."
+            },
+            status_code = 404
+        )
+
+    movies.title    = movie.title
+    movies.overview = movie.overview
+    movies.year     = movie.year
+    movies.rating   = movie.rating
+    movies.category = movie.category
+    db.commit()
+    db.refresh(movies)
+
+    return JSONResponse(
+        content = {
+            "message": "Movie updated successfully.",
+            "movie": jsonable_encoder(movies),
+        }
+    )
 
 
 @app.delete(
@@ -244,12 +275,23 @@ def delete_movie(movie_id: int) -> dict:
     Returns:
         dict or None: The deleted movie as a dictionary, or None if the movie was not found.
     """
-    for movie in movies:
-        if movie.id == movie_id:
-            movies.remove(movie)
-            return JSONResponse(
-                content = {
-                    "message": "Movie deleted successfully.",
-                    "movie": movie.model_dump(),
-                }
-            )
+    db = Session()
+    movies = db.query(BaseMovie).filter(BaseMovie.id == movie_id).first()
+
+    if not movies:
+        return JSONResponse(
+            content = {
+                "error": "Movie not found."
+            },
+            status_code = 404
+        )
+
+    db.delete(movies)
+    db.commit()
+
+    return JSONResponse(
+        content = {
+            "message": "Movie deleted successfully.",
+            "movie": jsonable_encoder(movies),
+        }
+    )
