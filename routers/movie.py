@@ -5,6 +5,7 @@ from config.database import Session
 from key.JWTBearer import JWTBearer
 
 from models.Movie import BaseMovie, Movie
+from services.MovieService import MovieService
 
 movie_router = APIRouter()
 
@@ -23,7 +24,7 @@ def get_movies() -> list[Movie]:
         list: A list of all movies in the database.
     """
     db = Session()
-    movies = db.query(BaseMovie).all()
+    movies = MovieService(db).get_all_movies()
     return JSONResponse(
         content = jsonable_encoder(movies)
     )
@@ -48,7 +49,7 @@ def get_movie(
         dict: The movie with the given ID, or None if no movie was found.
     """
     db = Session()
-    movies = db.query(BaseMovie).filter(BaseMovie.id == movie_id).first()
+    movies = MovieService(db).get_movie_by_id(movie_id)
 
     if not movies:
         return JSONResponse(
@@ -93,8 +94,7 @@ def get_movies_by_category(
         list: A list of movies filtered by category and/or year.
     """
     db = Session()
-
-    return_movies = db.query(BaseMovie).all()
+    return_movies = MovieService(db).get_all_movies()
 
     if category != "All":
         return_movies = list(filter(lambda movie: movie.category == category, return_movies))
@@ -129,10 +129,7 @@ def post_movie(movie: Movie) -> dict:
         dict: A dictionary containing the details of the newly created movie.
     """
     db = Session()
-    new_movie = BaseMovie(**movie.model_dump())
-    db.add(new_movie)
-    db.commit()
-    db.refresh(new_movie)
+    new_movie = MovieService(db).create_movie(movie)
 
     return JSONResponse(
         content = {
@@ -165,28 +162,16 @@ def put_movie(movie_id: int, movie: Movie) -> dict:
         None: If no movie with the given ID was found.
     """
     db = Session()
-    movies = db.query(BaseMovie).filter(BaseMovie.id == movie_id).first()
-
-    if not movies:
-        return JSONResponse(
-            content = {
-                "error": "Movie not found."
-            },
-            status_code = 404
-        )
-
-    movies.title    = movie.title
-    movies.overview = movie.overview
-    movies.year     = movie.year
-    movies.rating   = movie.rating
-    movies.category = movie.category
-    db.commit()
-    db.refresh(movies)
+    updated_movie = MovieService(db).update_movie(movie_id, movie)
 
     return JSONResponse(
         content = {
+            "error": "Movie not found."
+        }
+    ) if not updated_movie else JSONResponse(
+        content = {
             "message": "Movie updated successfully.",
-            "movie": jsonable_encoder(movies),
+            "movie": jsonable_encoder(updated_movie),
         }
     )
 
@@ -208,23 +193,15 @@ def delete_movie(movie_id: int) -> dict:
         dict or None: The deleted movie as a dictionary, or None if the movie was not found.
     """
     db = Session()
-    movies = db.query(BaseMovie).filter(BaseMovie.id == movie_id).first()
-
-    if not movies:
-        return JSONResponse(
-            content = {
-                "error": "Movie not found."
-            },
-            status_code = 404
-        )
-
-    db.delete(movies)
-    db.commit()
+    deleted_movie = MovieService(db).delete_movie(movie_id)
 
     return JSONResponse(
         content = {
+            "error": "Movie not found."
+        }
+    ) if not deleted_movie else JSONResponse(
+        content = {
             "message": "Movie deleted successfully.",
-            "movie": jsonable_encoder(movies),
+            "movie": jsonable_encoder(deleted_movie),
         }
     )
-
