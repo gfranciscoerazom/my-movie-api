@@ -6,6 +6,7 @@ from models.Movie import Movie, BaseMovie
 from models.User import User
 from config.database import Session, engine, Base
 from fastapi.encoders import jsonable_encoder
+from middlewares.ErrorHandler import ErrorHandler
 
 app = FastAPI()
 app.title = "My First API with FastAPI"
@@ -16,6 +17,7 @@ app.contact = {
     'url': "https://www.linkedin.com/in/gfranciscoerazom/",
     'email': 'gfranciscoerazom@protonmail.com',
 }
+app.add_middleware(ErrorHandler)
 
 Base.metadata.create_all(bind=engine)
 
